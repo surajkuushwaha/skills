@@ -18,7 +18,7 @@ Alternatively, you can symlink individual skills into `~/.pi/agent/skills/`.
 
 ## Available Skills
 
-*No skills yet. Create a new directory with a `SKILL.md` file to add one!*
+*   **[caveman](./caveman/SKILL.md)**: Ultra-compressed communication mode.
 
 ## Skill Structure
 
