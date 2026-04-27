@@ -1,0 +1,18 @@
+{
+  "name": "skills",
+  "version": "1.0.0",
+  "description": "A collection of skills for the [pi coding agent](https://github.com/mariozechner/pi-coding-agent).",
+  "bin": {
+    "skills": "bin/cli.js"
+  },
+  "files": [
+    "bin",
+    "caveman"
+  ],
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC"
+}
