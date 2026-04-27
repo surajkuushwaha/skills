@@ -7,7 +7,24 @@
   },
   "files": [
     "bin",
-    "caveman"
+    "caveman",
+    "design-an-interface",
+    "domain-model",
+    "edit-article",
+    "github-triage",
+    "grill-me",
+    "improve-codebase-architecture",
+    "obsidian-vault",
+    "qa",
+    "request-refactor-plan",
+    "scaffold-exercises",
+    "setup-pre-commit",
+    "tdd",
+    "to-issues",
+    "triage-issue",
+    "ubiquitous-language",
+    "write-a-skill",
+    "zoom-out"
   ],
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"

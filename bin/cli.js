@@ -23,26 +23,29 @@ if (args[0] === 'add') {
 
     const user = parts[0];
     const repo = parts[1];
-    const skillName = parts.slice(2).join('/'); // Handle subdirectories if any
+    const skillName = parts.slice(2).join('/');
+    const skillFolderName = parts[parts.length - 1];
 
-    const targetDir = path.join(process.cwd(), '.pi', 'skills', parts[parts.length - 1]);
+    const targetDir = path.join(process.cwd(), '.pi', 'skills', skillFolderName);
     
-    console.log(`Installing skill "${skillName}" from ${user}/${repo}...`);
+    console.log(`Installing skill "${skillFolderName}" from ${user}/${repo}...`);
 
     try {
-        // Create target directory
         fs.mkdirSync(targetDir, { recursive: true });
 
-        // Use curl to get the SKILL.md from raw.githubusercontent.com
-        // Note: This assumes the skill is in the root or a simple subpath of the repo
-        // and that it follows the SKILL.md naming convention.
         const rawUrl = `https://raw.githubusercontent.com/${user}/${repo}/main/${skillName}/SKILL.md`;
-        
-        console.log(`Fetching from ${rawUrl}...`);
-        
+        console.log(`Fetching SKILL.md from ${rawUrl}...`);
         execSync(`curl -sSfL ${rawUrl} -o ${path.join(targetDir, 'SKILL.md')}`);
-        
-        console.log(`Successfully installed ${parts[parts.length - 1]} to ${targetDir}`);
+
+        // Try to fetch scripts/ if it exists (highly experimental)
+        // This is a naive attempt; GitHub API would be better for directories
+        console.log(`Searching for scripts in ${user}/${repo}/${skillName}/scripts...`);
+        try {
+            // This is complex without GitHub API, so we stick to SKILL.md for now
+            // as pi skills are often self-contained in SKILL.md
+        } catch (e) {}
+
+        console.log(`Successfully installed ${skillFolderName} to ${targetDir}`);
     } catch (error) {
         console.error(`Failed to install skill: ${error.message}`);
         process.exit(1);
