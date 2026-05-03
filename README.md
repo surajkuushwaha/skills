@@ -1,24 +1,15 @@
-# My Pi Skills
+# Skills
 
-A collection of skills for the [pi coding agent](https://github.com/mariozechner/pi-coding-agent).
+A collection of reusable agent skills for Claude Code and compatible coding agents.
 
 ## Installation
 
-To use these skills, clone this repository and add its path to your `~/.pi/settings.json`:
-
-```json
-{
-  "skills": [
-    "/absolute/path/to/this/repo"
-  ]
-}
-```
-
-Alternatively, you can symlink individual skills into `~/.pi/agent/skills/`.
+Clone this repository and add its path to your agent's skills configuration. For Claude Code with superpowers, add the path to your skills directory in settings.
 
 ## Available Skills
 
 *   **[caveman](./caveman/SKILL.md)**: Ultra-compressed communication mode.
+*   **[cx-moduler-architecture](./cx-moduler-architecture/SKILL.md)**: Modular layered architecture for backend features.
 *   **[design-an-interface](./design-an-interface/SKILL.md)**: Helps design clean, typesafe interfaces.
 *   **[domain-model](./domain-model/SKILL.md)**: Assists in defining the domain model.
 *   **[edit-article](./edit-article/SKILL.md)**: Workflows for editing articles.

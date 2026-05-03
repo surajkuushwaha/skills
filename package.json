@@ -1,13 +1,10 @@
 {
   "name": "skills",
   "version": "1.0.0",
-  "description": "A collection of skills for the [pi coding agent](https://github.com/mariozechner/pi-coding-agent).",
-  "bin": {
-    "skills": "bin/cli.js"
-  },
+  "description": "A collection of reusable agent skills for Claude Code and compatible coding agents.",
   "files": [
-    "bin",
     "caveman",
+    "cx-moduler-architecture",
     "design-an-interface",
     "domain-model",
     "edit-article",
