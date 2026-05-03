@@ -2,7 +2,11 @@
   "name": "skills",
   "version": "1.0.0",
   "description": "A collection of reusable agent skills for Claude Code and compatible coding agents.",
+  "bin": {
+    "skills": "bin/cli.js"
+  },
   "files": [
+    "bin",
     "caveman",
     "cx-moduler-architecture",
     "design-an-interface",

@@ -4,7 +4,23 @@ A collection of reusable agent skills for Claude Code and compatible coding agen
 
 ## Installation
 
-Clone this repository and add its path to your agent's skills configuration. For Claude Code with superpowers, add the path to your skills directory in settings.
+Install all skills from this repo into your current directory:
+
+```bash
+npx skills add surajkuushwaha/skills
+```
+
+Install a single skill:
+
+```bash
+npx skills add surajkuushwaha/skills/caveman
+```
+
+Install to a specific directory:
+
+```bash
+npx skills add surajkuushwaha/skills --target ~/.claude/skills
+```
 
 ## Available Skills
 
