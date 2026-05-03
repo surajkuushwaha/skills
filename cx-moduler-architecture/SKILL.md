@@ -22,22 +22,26 @@ Group by **feature**, not layer. One module = one folder.
 src/
 └── modules/
     ├── user/
-    │   ├── index.ts            # public barrel
-    │   ├── user.route.ts
-    │   ├── user.controller.ts
-    │   ├── user.service.ts
-    │   ├── user.repository.ts
-    │   ├── user.schema.ts
-    │   └── user.util.ts
+    │   ├── index.ts                    # public barrel
+    │   ├── controller/
+    │   │   └── user.controller.ts
+    │   ├── service/
+    │   │   └── user.service.ts
+    │   ├── repository/
+    │   │   └── user.repository.ts
+    │   ├── schema/
+    │   │   └── user.schema.ts
+    │   └── util/
+    │       └── user.util.ts
     └── order/
         └── ... (same shape)
 ```
 
 Naming:
 
-- Pattern: `<feature>.<layer>.ts` under `src/modules/<feature>/`
+- Pattern: `src/modules/<feature>/<layer>/<feature>.<layer>.ts`
 - `<feature>`: kebab-case, singular (`user-profile`, not `userProfile`/`users`)
-- One feature = one folder; never split across top-level layer folders
+- One feature = one folder; each layer file lives in its own subfolder
 
 # Layer Responsibilities
 
@@ -118,10 +122,10 @@ Every module folder has `index.ts` re-exporting public surface. Other modules im
 
 ```ts
 // src/modules/user/index.ts
-export * from "./user.route";
-export * from "./user.controller";
-export * from "./user.service";
-export * from "./user.schema";
+export * from "./routes/user.routes";
+export * from "./controller/user.controller";
+export * from "./service/user.service";
+export * from "./schema/user.schema";
 ```
 
 Rules:
@@ -133,12 +137,12 @@ Rules:
 # Implementation Steps
 
 1. Create `src/modules/<feature>/`
-2. Schema (`<feature>.schema.ts`) — validation + types
-3. Repository (`<feature>.repository.ts`) — DB functions
-4. Service (`<feature>.service.ts`) — business logic (may use util)
-5. Util (`<feature>.util.ts`) — pure helpers (must NOT import service)
-6. Controller (`<feature>.controller.ts`) — with jsDoc
-7. Route (`<feature>.route.ts`) — RESTful endpoints
+2. `schema/<feature>.schema.ts` — validation + types
+3. `repository/<feature>.repository.ts` — DB functions
+4. `service/<feature>.service.ts` — business logic (may use util)
+5. `util/<feature>.util.ts` — pure helpers (must NOT import service)
+6. `controller/<feature>.controller.ts` — with jsDoc
+7. `routes/<feature>.routes.ts` — RESTful endpoints
 8. `index.ts` — re-export public surface
 
 # Rules (Strict)
@@ -147,7 +151,7 @@ Rules:
 - No business logic in controller
 - Route never calls repository directly
 - Services HTTP-independent + reusable
-- **Util forbidden from importing service/controller/repository/route** (one-way: service → util)
+- **Util forbidden from importing service/controller/repository/routes** (one-way: service → util)
 - Schema = types + validation only, no runtime logic
 - Cross-module access through `index.ts` barrel only
 - Code: async/await consistent, modular, readable
