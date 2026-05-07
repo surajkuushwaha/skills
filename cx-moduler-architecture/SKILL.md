@@ -12,7 +12,7 @@ description: Scaffold backend features using a modular layered architecture (rou
 # Architecture
 
 Flow: `route → controller → service → repository`. Layers strict, no overlap.
-Side files per feature: `schema` (types/validation), `util` (pure helpers), `index.ts` (barrel).
+Side files per feature: `schema` (validation), `types` (TS types/interfaces), `config` (feature constants/config), `util` or `helper` (pure helpers), `index.ts` (barrel).
 
 All repositories live in `packages/cx-datastore/src/repositories/`. Never inside `src/modules/`.
 
@@ -31,7 +31,11 @@ src/
     │   │   └── user.service.ts
     │   ├── schema/
     │   │   └── user.schema.ts
-    │   └── util/
+    │   ├── types/
+    │   │   └── user.types.ts
+    │   ├── config/
+    │   │   └── user.config.ts
+    │   └── util/                       # also named helper/ — both valid
     │       └── user.util.ts
     └── order/
         └── ... (same shape)
@@ -208,7 +212,40 @@ export const createUserSchema = z.object({
 export type CreateUserInput = z.infer<typeof createUserSchema>;
 ```
 
-## Util (Helper)
+## Types
+
+Feature-scoped TypeScript types and interfaces. No runtime logic, no I/O. Separate from schema — schema = validation + inferred types, types = standalone interfaces/enums not tied to a validator.
+
+```ts
+// user/types/user.types.ts
+export interface UserSummary {
+  id: number;
+  displayName: string;
+  role: UserRole;
+}
+
+export enum UserRole {
+  Admin = "admin",
+  Member = "member",
+}
+```
+
+## Config
+
+Feature-scoped constants and config values. No runtime logic, no I/O, no business decisions.
+
+```ts
+// user/config/user.config.ts
+export const USER_CONFIG = {
+  maxNameLength: 100,
+  defaultRole: "member",
+  sessionTtlSeconds: 3600,
+} as const;
+```
+
+## Util / Helper
+
+Folder name: `util/` or `helper/` — both valid, pick one per module, stay consistent.
 
 Pure, stateless, feature-scoped. No HTTP, no DB, no business decisions.
 **Service → Util OK. Util → Service/Controller/Repository/Route FORBIDDEN.**
@@ -241,16 +278,18 @@ Rules:
 # Implementation Steps
 
 1. Create `src/modules/<feature>/`
-2. `schema/<feature>.schema.ts` — validation + types
-3. `packages/cx-datastore/src/repositories/<domain>/<feature>.repository.ts` — class, constructor injection, `export default ClassName`
-4. `packages/cx-datastore/src/repositories/<domain>/index.ts` — add to domain object
-5. `packages/cx-datastore/src/repositories/index.ts` — add domain if new
-6. `src/shared/db/repositories.ts` — instantiate with `new repositories.<domain>.FooRepository({ ...models })`
-7. `service/<feature>.service.ts` — imports named instance from `shared/db/repositories`
-8. `util/<feature>.util.ts` — pure helpers (if needed)
-9. `controller/<feature>.controller.ts` — jsDoc
-10. `routes/<feature>.routes.ts` — RESTful endpoints
-11. `index.ts` — re-export public surface
+2. `types/<feature>.types.ts` — standalone TS types/interfaces/enums (if needed)
+3. `config/<feature>.config.ts` — feature constants (if needed)
+4. `schema/<feature>.schema.ts` — validation schemas + inferred types
+5. `packages/cx-datastore/src/repositories/<domain>/<feature>.repository.ts` — class, constructor injection, `export default ClassName`
+6. `packages/cx-datastore/src/repositories/<domain>/index.ts` — add to domain object
+7. `packages/cx-datastore/src/repositories/index.ts` — add domain if new
+8. `src/shared/db/repositories.ts` — instantiate with `new repositories.<domain>.FooRepository({ ...models })`
+9. `service/<feature>.service.ts` — imports named instance from `shared/db/repositories`
+10. `util/<feature>.util.ts` or `helper/<feature>.helper.ts` — pure helpers (if needed)
+11. `controller/<feature>.controller.ts` — jsDoc
+12. `routes/<feature>.routes.ts` — RESTful endpoints
+13. `index.ts` — re-export public surface
 
 # Rules (Strict)
 
@@ -260,8 +299,11 @@ Rules:
 - No business logic in controller
 - Route never calls repository directly
 - Services HTTP-independent + reusable
-- **Util forbidden from importing service/controller/repository/routes** (one-way: service → util)
-- Schema = types + validation only, no runtime logic
+- **Util/helper forbidden from importing service/controller/repository/routes** (one-way: service → util/helper)
+- Util folder: name `util/` or `helper/` — pick one per module, stay consistent
+- Schema = validation + inferred types only, no runtime logic
+- Types = standalone interfaces/enums only, no runtime logic, no I/O
+- Config = constants only, no runtime logic, no I/O
 - Cross-module access through `index.ts` barrel only
 - Code: async/await consistent, modular, readable
 
