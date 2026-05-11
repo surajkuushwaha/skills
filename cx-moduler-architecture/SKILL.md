@@ -12,7 +12,9 @@ description: Scaffold backend features using a modular layered architecture (rou
 # Architecture
 
 Flow: `route → controller → service → repository`. Layers strict, no overlap.
-Side files per feature: `schema` (validation), `types` (TS types/interfaces), `config` (feature constants/config), `util` or `helper` (pure helpers), `index.ts` (barrel).
+Side files per feature: `schemas` (validation), `types` (TS types/interfaces), `config` (feature constants/config), `utils` or `helpers` (pure helpers), `crons` (scheduled jobs), `index.ts` (barrel).
+
+Folder names plural: `controllers/`, `services/`, `schemas/`, `helpers/`, `utils/`, `crons/`. Pick `utils/` or `helpers/` per module — stay consistent.
 
 All repositories live in `packages/cx-datastore/src/repositories/`. Never inside `src/modules/`.
 
@@ -24,18 +26,20 @@ Group by **feature**, not layer. One module = one folder.
 src/
 └── modules/
     ├── user/
-    │   ├── index.ts                    # public barrel
-    │   ├── controller/
+    │   ├── index.ts                    # public barrel — export only what's needed
+    │   ├── controllers/
     │   │   └── user.controller.ts
-    │   ├── service/
+    │   ├── services/
     │   │   └── user.service.ts
-    │   ├── schema/
+    │   ├── schemas/
     │   │   └── user.schema.ts
     │   ├── types/
     │   │   └── user.types.ts
     │   ├── config/
     │   │   └── user.config.ts
-    │   └── util/                       # also named helper/ — both valid
+    │   ├── crons/                      # scheduled jobs — repo + helper only
+    │   │   └── user.cron.ts
+    │   └── utils/                      # also named helpers/ — both valid
     │       └── user.util.ts
     └── order/
         └── ... (same shape)
@@ -243,9 +247,28 @@ export const USER_CONFIG = {
 } as const;
 ```
 
+## Cron
+
+Scheduled jobs. Service-like structure — business logic for a recurring task.
+**May import: repository, helper/util only.** No HTTP, no controller, no service, no route.
+Need service logic? Extract into helper/util or move shared piece into a helper both can use.
+
+```ts
+// user/crons/user.cron.ts
+import { userRepository } from "../../../shared/db/repositories";
+import { formatUserDisplayName } from "../utils/user.util";
+
+export const purgeStaleUsersCron = async () => {
+  const stale = await userRepository.findStale();
+  for (const u of stale) {
+    await userRepository.softDelete(u.id);
+  }
+};
+```
+
 ## Util / Helper
 
-Folder name: `util/` or `helper/` — both valid, pick one per module, stay consistent.
+Folder name: `utils/` or `helpers/` — both valid, pick one per module, stay consistent.
 
 Pure, stateless, feature-scoped. No HTTP, no DB, no business decisions.
 **Service → Util OK. Util → Service/Controller/Repository/Route FORBIDDEN.**
@@ -259,37 +282,40 @@ export const formatUserDisplayName = (firstName: string, lastName: string) => {
 
 # Module Exports (`index.ts`)
 
-Every module folder has `index.ts` re-exporting public surface. Other modules import only from barrel — never reach internals.
+Every module folder has `index.ts` re-exporting **only what other modules need**. Not a blanket `export *`. Internals (utils, crons, internal helpers, private types) stay unexported unless another module legitimately needs them.
 
 ```ts
-// src/modules/user/index.ts
-export * from "./routes/user.routes";
-export * from "./controller/user.controller";
-export * from "./service/user.service";
-export * from "./schema/user.schema";
+// src/modules/user/index.ts — named, explicit, minimal
+export { userRoutes } from "./routes/user.routes";
+export { createUserService, getUserService } from "./services/user.service";
+export { createUserSchema, type CreateUserInput } from "./schemas/user.schema";
+// controllers, crons, utils, config NOT exported — internal
 ```
 
 Rules:
 
-- Util stays internal unless another module legitimately needs it
-- Cross-module imports go through `index.ts` (`import { userService } from "@/modules/user"`)
+- Export only the public surface other modules consume — no `export *` blanket re-exports
+- Controllers, crons, utils/helpers, config: internal by default
+- Cross-module imports go through `index.ts` (`import { createUserService } from "@/modules/user"`)
 - Intra-module imports use relative paths
+- Need to expose something new? Add the named export deliberately
 
 # Implementation Steps
 
 1. Create `src/modules/<feature>/`
 2. `types/<feature>.types.ts` — standalone TS types/interfaces/enums (if needed)
 3. `config/<feature>.config.ts` — feature constants (if needed)
-4. `schema/<feature>.schema.ts` — validation schemas + inferred types
+4. `schemas/<feature>.schema.ts` — validation schemas + inferred types
 5. `packages/cx-datastore/src/repositories/<domain>/<feature>.repository.ts` — class, constructor injection, `export default ClassName`
 6. `packages/cx-datastore/src/repositories/<domain>/index.ts` — add to domain object
 7. `packages/cx-datastore/src/repositories/index.ts` — add domain if new
 8. `src/shared/db/repositories.ts` — instantiate with `new repositories.<domain>.FooRepository({ ...models })`
-9. `service/<feature>.service.ts` — imports named instance from `shared/db/repositories`
-10. `util/<feature>.util.ts` or `helper/<feature>.helper.ts` — pure helpers (if needed)
-11. `controller/<feature>.controller.ts` — jsDoc
-12. `routes/<feature>.routes.ts` — RESTful endpoints
-13. `index.ts` — re-export public surface
+9. `services/<feature>.service.ts` — imports named instance from `shared/db/repositories`
+10. `utils/<feature>.util.ts` or `helpers/<feature>.helper.ts` — pure helpers (if needed)
+11. `crons/<feature>.cron.ts` — scheduled jobs, repo + helper only (if needed)
+12. `controllers/<feature>.controller.ts` — jsDoc
+13. `routes/<feature>.routes.ts` — RESTful endpoints
+14. `index.ts` — re-export only public surface (named exports, no blanket `export *`)
 
 # Rules (Strict)
 
@@ -300,11 +326,14 @@ Rules:
 - Route never calls repository directly
 - Services HTTP-independent + reusable
 - **Util/helper forbidden from importing service/controller/repository/routes** (one-way: service → util/helper)
-- Util folder: name `util/` or `helper/` — pick one per module, stay consistent
+- Util folder: name `utils/` or `helpers/` — pick one per module, stay consistent
+- Folder names plural always: `controllers/`, `services/`, `schemas/`, `helpers/`/`utils/`, `crons/`
+- **Cron may import: repository + helper/util only.** No service/controller/route
 - Schema = validation + inferred types only, no runtime logic
 - Types = standalone interfaces/enums only, no runtime logic, no I/O
 - Config = constants only, no runtime logic, no I/O
 - Cross-module access through `index.ts` barrel only
+- `index.ts` exports only what's required — named exports, no `export *` blanket
 - Code: async/await consistent, modular, readable
 
 # Anti-patterns
@@ -316,6 +345,9 @@ Rules:
 - Reaching into another module's internal files (bypass `index.ts`)
 - `export default new FooRepository()` in repo file — never instantiate there
 - Repository living in `src/modules/` — always belongs in cx-datastore
+- Cron calling service/controller — extract shared logic to helper instead
+- Singular folder names (`controller/`, `service/`) — always plural
+- `export *` in module `index.ts` — leaks internals, use named exports
 
 # Works well with
 
