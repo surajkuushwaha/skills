@@ -1,5 +1,5 @@
 ---
-name: cx-modular-architecture
+name: modular-architecture
 description: Scaffold backend features using a modular layered architecture (route → controller → service → repository) where each feature is a self-contained module. Use when creating a new API/backend feature, refactoring into a clean structure, or enforcing separation of concerns.
 ---
 

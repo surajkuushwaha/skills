@@ -1,0 +1,11 @@
+{
+  "name": "surajkuushwaha-skills",
+  "skills": [
+    "./skills/cx/modular-architecture",
+    "./skills/engineering/grill-me",
+    "./skills/misc/git-guardrails-claude-code",
+    "./skills/productivity/caveman",
+    "./skills/productivity/handoff",
+    "./skills/productivity/write-a-skill"
+  ]
+}
