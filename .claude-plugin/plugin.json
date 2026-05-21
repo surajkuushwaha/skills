@@ -3,7 +3,9 @@
   "skills": [
     "./skills/cx/modular-architecture",
     "./skills/engineering/grill-me",
+    "./skills/engineering/grill-with-docs",
     "./skills/misc/git-guardrails-claude-code",
+    "./skills/misc/setup-pre-commit",
     "./skills/productivity/caveman",
     "./skills/productivity/handoff",
     "./skills/productivity/write-a-skill"

@@ -4,28 +4,14 @@ A Claude Code plugin bundling personal agent skills.
 
 ## Layout
 
-```
+```text
 .claude-plugin/
 └── plugin.json          # manifest — declares every skill path
 skills/
 ├── cx/                  # CX backend conventions
-│   └── modular-architecture/
-│       └── SKILL.md
-├── engineering/
-│   └── grill-me/
-│       └── SKILL.md
-├── misc/
-│   └── git-guardrails-claude-code/
-│       ├── SKILL.md
-│       └── scripts/
-└── productivity/
-    ├── README.md
-    ├── caveman/
-    │   └── SKILL.md
-    ├── handoff/
-    │   └── SKILL.md
-    └── write-a-skill/
-        └── SKILL.md
+├── engineering/         # coding workflows
+├── misc/                # standalone utilities
+└── productivity/        # general workflow tools
 ```
 
 `plugin.json` lists every skill explicitly. Folder nesting is for organization only — Claude Code reads paths from the manifest.
@@ -33,15 +19,21 @@ skills/
 ## Available Skills
 
 ### cx
+
 - **[modular-architecture](./skills/cx/modular-architecture/SKILL.md)** — Layered architecture (route → controller → service → repository) for backend features.
 
 ### engineering
+
 - **[grill-me](./skills/engineering/grill-me/SKILL.md)** — Agent asks tough questions to find logic holes.
+- **[grill-with-docs](./skills/engineering/grill-with-docs/SKILL.md)** — Stress-test a plan against the project's domain language and ADRs, updating docs inline.
 
 ### misc
-- **[git-guardrails-claude-code](./skills/misc/git-guardrails-claude-code/SKILL.md)** — Set up Claude Code hooks to block dangerous git commands.
+
+- **[git-guardrails-claude-code](./skills/misc/git-guardrails-claude-code/SKILL.md)** — Hooks to block dangerous git commands.
+- **[setup-pre-commit](./skills/misc/setup-pre-commit/SKILL.md)** — Husky + lint-staged pre-commit hooks (Prettier, typecheck, tests).
 
 ### productivity
+
 - **[caveman](./skills/productivity/caveman/SKILL.md)** — Ultra-compressed communication mode.
 - **[handoff](./skills/productivity/handoff/SKILL.md)** — Compact current conversation into a handoff document for another agent.
 - **[write-a-skill](./skills/productivity/write-a-skill/SKILL.md)** — Create new skills with proper structure and progressive disclosure.
