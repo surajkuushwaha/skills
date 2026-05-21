@@ -24,6 +24,8 @@ skills/
 
 ### engineering
 
+- **[feature-plan](./skills/engineering/feature-plan/SKILL.md)** — Draft a stakeholder-friendly feature/project plan (problem, solution, components, phases, scope, open questions).
+- **[feature-spec](./skills/engineering/feature-spec/SKILL.md)** — Turn an approved plan into a developer-ready technical spec (architecture diagrams, module breakdown, data models, implementation steps).
 - **[grill-me](./skills/engineering/grill-me/SKILL.md)** — Agent asks tough questions to find logic holes.
 - **[grill-with-docs](./skills/engineering/grill-with-docs/SKILL.md)** — Stress-test a plan against the project's domain language and ADRs, updating docs inline.
 

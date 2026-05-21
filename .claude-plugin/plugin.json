@@ -2,6 +2,8 @@
   "name": "Suraj Kushwaha's skills",
   "skills": [
     "./skills/cx/modular-architecture",
+    "./skills/engineering/feature-plan",
+    "./skills/engineering/feature-spec",
     "./skills/engineering/grill-me",
     "./skills/engineering/grill-with-docs",
     "./skills/misc/git-guardrails-claude-code",
