@@ -1,6 +1,7 @@
 {
   "name": "Suraj Kushwaha's skills",
   "skills": [
+    "./skills/cx/cx-database-schema",
     "./skills/cx/modular-architecture",
     "./skills/engineering/feature-plan",
     "./skills/engineering/feature-spec",

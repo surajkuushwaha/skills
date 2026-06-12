@@ -20,6 +20,7 @@ skills/
 
 ### cx
 
+- **[cx-database-schema](./skills/cx/cx-database-schema/SKILL.md)** — Write a migration + Sequelize model in lockstep: column naming, standard trailing block, FKs, ENUMs, paranoid soft delete, associations, registry.
 - **[modular-architecture](./skills/cx/modular-architecture/SKILL.md)** — Layered architecture (route → controller → service → repository) for backend features.
 
 ### engineering
