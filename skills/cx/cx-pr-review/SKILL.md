@@ -1,6 +1,6 @@
 ---
 name: cx-pr-review
-description: Review or re-review any PR on the current branch of cx-saas-server. Use when the user asks to "review the PR", "re-review", "audit changes", "check the diff", verify a fix, or check what's still pending before merge. Combines a first-principles review framework with a router that pulls in deeper checks based on the files changed, plus a library of CultureX-specific traps that have actually shipped (paranoid+CASCADE, MySQL partial index, agencyId scoping, MySQL↔Mongo cross-store refs, sync-LLM-in-handler, side-effect gating, prod-backfill normalization, unbatched mega-UPDATE, symmetric-fix gaps, stuck background tasks, …). Reviews stay thorough, adapt to the diff, output a plain no-emoji findings file, and stay consistent across sessions.
+description: Review or re-review any PR on the current branch of cx-saas-server. Use when the user asks to "review the PR", "re-review", "audit changes", "check the diff", verify a fix, or check what's still pending before merge. Combines a first-principles review framework with a router that pulls in deeper checks based on the files changed, plus a library of CultureX-specific traps that have actually shipped (paranoid+CASCADE, MySQL partial index, agencyId scoping, MySQL↔Mongo cross-store refs, sync-LLM-in-handler, side-effect gating, prod-backfill normalization, unbatched mega-UPDATE, symmetric-fix gaps, stuck background tasks, …). Detects the repo's stack first (§0) so it works on non-Sequelize/non-MySQL CultureX repos too (Mongo-only, Prisma, Postgres, TypeORM, no-ORM) — stack-specific traps stay conditional, the universal lenses always apply. Reviews stay thorough, adapt to the diff, output a plain no-emoji findings file, and stay consistent across sessions.
 ---
 
 # CultureX PR Review
@@ -19,6 +19,33 @@ Operating rules:
 - **The trap library is examples, not the whole job.** Pattern-match against it, but a PR can be perfectly free of every listed trap and still be broken. Conversely, when you find a *new* recurring class of bug, add it (see §9 Keep the skill learning).
 - **Adapt to the diff.** A docs-only PR doesn't need the SQL generator. A cron PR needs idempotency thinking the trap table only hints at. Spend effort where the risk is.
 - Flag **real bugs, risks, and design problems**. Don't nit-pick style. See §8 (What to skip).
+- **Adapt to the stack, not just the diff.** This skill was written against cx-saas-server (Express + Sequelize + MySQL, with Mongo via Creator Service). Many CultureX repos don't share that stack — cx-worker, cx-creator-services, analytics, pdf-gen, or any Mongo-only / Prisma / Postgres / TypeORM / no-ORM service. **Run §0 first, then apply only the checks that match what's actually there.** The §3 lenses are universal; the stack-specific traps (§4 Migration, §5 MySQL/Sequelize rows, the SQL generator) only apply where that stack is present. Don't flag a missing `agencyId` Sequelize pattern in a repo that has no Sequelize — find that repo's equivalent and check *that*.
+
+## 0. Detect the stack (do this once, first)
+
+Don't assume MySQL/Sequelize. Cheaply fingerprint the repo, then gate the stack-specific checks:
+
+```bash
+# ORM / DB driver in play
+grep -iE '"(sequelize|prisma|typeorm|mongoose|mongodb|knex|drizzle|pg|mysql2?)"' package.json 2>/dev/null
+ls migrations prisma 2>/dev/null; ls **/schema.prisma 2>/dev/null
+# Tenancy / auth convention (what plays the role of agencyId / rbac.config)
+grep -rIlE 'agencyId|tenantId|orgId|workspaceId|accountId' src 2>/dev/null | head
+grep -rIl 'rbac|checkRBAC|authorize|can\(' src middleware 2>/dev/null | head
+```
+
+Map what you find to the right lens — the **principle** is constant, only the mechanism changes:
+
+| Concept | cx-saas-server (default) | If the repo uses… |
+|---|---|---|
+| Schema change | Sequelize `migrations/*.js` | Prisma `schema.prisma` + `prisma migrate`; TypeORM migration; Mongo has none — shape lives in code, so check back-compat of reads on old docs |
+| Tenant scoping | required `agencyId` in `where:` | whatever key fingerprinting found (`tenantId`/`orgId`/`workspaceId`); Mongo filter must carry it too |
+| The "zero rows on MySQL" trap (§5 `Op.notIn:[null,""]`) | Sequelize+MySQL only | N/A on Mongo/Postgres — **skip it**; for Mongo check `$ne`/`$nin` with `null` semantics instead |
+| `paranoid` soft-delete + CASCADE | Sequelize `paranoid` | Prisma has no soft-delete built in (check a `deletedAt` filter is applied everywhere); Mongo `isDeleted` flag consistency |
+| Partial-index / charset / FK-width | MySQL DDL | Postgres supports partial indexes (so that trap *inverts* — they DO work); Mongo: index definitions in code, TTL/compound correctness |
+| The SQL generator (§7) | Sequelize→MySQL SQL | Prisma: read generated SQL via `prisma` query logging; raw Mongo: reason about the aggregation pipeline / `$match` instead |
+
+If none of the stack-specific rows apply, the review is §3 lenses + §2 generic rows (RBAC, idempotency, N+1, contract, error-handling) + whatever §5 traps are framework-agnostic (success-theater, field-shape, sync-LLM-inline, N+1, symmetric-fix gap, stuck-task). That's still a thorough review — the universal lenses carry it.
 
 ## 1. Scope the diff & understand intent
 
@@ -101,9 +128,9 @@ End each lens by explicitly asking: **"What's the worst input or timing that bre
 
 ## 4. Per-category checklists (the floor)
 
-Run the ones matching §1 classification. These are generalized — they apply across modules, not just the feature they were first written for.
+Run the ones matching §1 classification. These are generalized — they apply across modules, not just the feature they were first written for. **The Migration, Model, and Repository checklists below assume Sequelize+MySQL** (per §0) — on a different stack, keep the *intent* (schema back-compat, tenant scoping, success-counts-reflect-writes) and drop the Sequelize/MySQL mechanics. Service, Controller/Route, Auth/RBAC, Cron, Cross-repo, Docs, and Data-backfill are largely stack-agnostic.
 
-### Migration (`migrations/*.js`)
+### Migration (`migrations/*.js`) — Sequelize+MySQL; on Prisma/TypeORM/Mongo check the equivalent (§0)
 - [ ] Charset `utf8mb4`, collate `utf8mb4_unicode_ci`
 - [ ] **Partial-index trap:** `where: { deleted_at: null }` on `addIndex` is **silently dropped on MySQL** (Postgres-only). Combined with `paranoid` + `bulkCreate({ ignoreDuplicates: true })`, re-creating a soft-deleted row silently fails (caller gets `success: true`, zero writes).
 - [ ] FK column widths: Mongo `_id` refs are `STRING(24)`/`CHAR(24) CHARACTER SET ascii COLLATE ascii_bin`, not `STRING(255)`
@@ -179,7 +206,7 @@ Run the ones matching §1 classification. These are generalized — they apply a
 
 ## 5. CultureX traps (learned the hard way — examples, not exhaustive)
 
-Reach for these by name when the pattern matches. This is encoded experience; it grows (see §9).
+Reach for these by name when the pattern matches. This is encoded experience; it grows (see §9). **Some are stack-specific** — the rows about partial index, INSERT IGNORE, `paranoid`+CASCADE, cross-store ref width, `Op.notIn:[null,""]`, static `Model.update`, and unbatched mega-UPDATE only bite on Sequelize+MySQL (see §0). The rest — success-theater, field-shape inconsistency, sync-LLM-inline, N+1 to a service, unbounded ids in body, LLM-key mismatch, side-effect gating drift, JSON-key typo under `any`, symmetric-fix gap, stuck background task — are framework-agnostic and apply on any stack.
 
 | Trap | Where it bites | Fix |
 |---|---|---|
