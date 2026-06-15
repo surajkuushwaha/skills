@@ -21,6 +21,7 @@ skills/
 ### cx
 
 - **[cx-database-schema](./skills/cx/cx-database-schema/SKILL.md)** — Write a migration + Sequelize model in lockstep: column naming, standard trailing block, FKs, ENUMs, paranoid soft delete, associations, registry.
+- **[cx-pr-review](./skills/cx/cx-pr-review/SKILL.md)** — Review/re-review a cx-saas-server PR: first-principles lenses + a diff-driven router + a library of CultureX traps that have actually shipped. Outputs a plain no-emoji findings file.
 - **[modular-architecture](./skills/cx/modular-architecture/SKILL.md)** — Layered architecture (route → controller → service → repository) for backend features.
 
 ### engineering
