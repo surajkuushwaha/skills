@@ -19,7 +19,25 @@ Operating rules:
 - **The trap library is examples, not the whole job.** Pattern-match against it, but a PR can be perfectly free of every listed trap and still be broken. Conversely, when you find a *new* recurring class of bug, add it (see §9 Keep the skill learning).
 - **Adapt to the diff.** A docs-only PR doesn't need the SQL generator. A cron PR needs idempotency thinking the trap table only hints at. Spend effort where the risk is.
 - Flag **real bugs, risks, and design problems**. Don't nit-pick style. See §8 (What to skip).
-- **Adapt to the stack, not just the diff.** This skill was written against cx-saas-server (Express + Sequelize + MySQL, with Mongo via Creator Service). Many CultureX repos don't share that stack — cx-worker, cx-creator-services, analytics, pdf-gen, or any Mongo-only / Prisma / Postgres / TypeORM / no-ORM service. **Run §0 first, then apply only the checks that match what's actually there.** The §3 lenses are universal; the stack-specific traps (§4 Migration, §5 MySQL/Sequelize rows, the SQL generator) only apply where that stack is present. Don't flag a missing `agencyId` Sequelize pattern in a repo that has no Sequelize — find that repo's equivalent and check *that*.
+- **Adapt to the stack, not just the diff.** This skill was written against cx-saas-server (Express + Sequelize + MySQL, with Mongo via Creator Service). Many CultureX repos don't share that stack — cx-worker, cx-creator-services, analytics, pdf-gen, or any Mongo-only / Prisma / Postgres / TypeORM / no-ORM service. **Confirm the base branch (§0a) first, then run §0, then apply only the checks that match what's actually there.** The §3 lenses are universal; the stack-specific traps (§4 Migration, §5 MySQL/Sequelize rows, the SQL generator) only apply where that stack is present. Don't flag a missing `agencyId` Sequelize pattern in a repo that has no Sequelize — find that repo's equivalent and check *that*.
+
+## 0a. Confirm the base branch (ASK before checking anything)
+
+**Before running a single `git`/`grep` command, ask the user which branch this PR merges into.** Every diff, log, and re-review delta in this skill is computed against that base — get it wrong and the whole review is scoped to the wrong set of changes (stale base → reviewing commits already merged; wrong base → missing or phantom changes).
+
+Don't assume `main`. Detect the likely candidates, then confirm:
+
+```bash
+gh pr view --json baseRefName 2>/dev/null            # if a PR exists, this IS the base — still confirm
+git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null # repo's default branch
+git branch -r                                         # see what exists (main? master? develop? a release branch?)
+```
+
+- If `gh pr view` returns a `baseRefName`, state it and ask the user to confirm or override (devs sometimes branch off a feature/release branch, not the PR base).
+- If there's no PR, **ask explicitly** — present the detected default (`main`/`master`/`develop`) as the suggestion but wait for the answer.
+- Record the confirmed base as `<base>` and use it in every command below (`<base>..HEAD`). For a re-review, also pin the last-reviewed SHA (§6).
+
+Use AskUserQuestion (or a plain question) — do not proceed to §0 / §1 until the base is confirmed.
 
 ## 0. Detect the stack (do this once, first)
 
@@ -49,11 +67,11 @@ If none of the stack-specific rows apply, the review is §3 lenses + §2 generic
 
 ## 1. Scope the diff & understand intent
 
-Run in parallel:
+Run in parallel (`<base>` = the branch confirmed in §0a, not assumed `main`):
 
 ```bash
-git log main..HEAD --oneline
-git diff main..HEAD --stat
+git log <base>..HEAD --oneline
+git diff <base>..HEAD --stat
 git status --short
 gh pr view --json title,body,number 2>/dev/null || true   # PR title/description if a PR exists
 ```
@@ -241,7 +259,7 @@ When the user says "the dev fixed X, re-review" — **re-read the actual files**
 - New files/commits since last review?
 - **For any SQL fix, regenerate and read the actual SQL** (§7) — don't reason about Sequelize from memory.
 
-**Pin the delta — don't re-review from scratch and don't trust the session snapshot.** Record the last-reviewed commit SHA; a re-review is `git diff <last-sha>..HEAD` + `git log <last-sha>..HEAD`, not a fresh `main..HEAD`. The start-of-session `gitStatus` snapshot and commit-message claims are *not* ground truth — reconcile your view with the PR's remote head (`gh pr view <n> --json headRefOid`): the dev may have committed locally (your local HEAD already advanced) or pushed to the remote (your checkout is stale). Establish the real delta first, then verify each prior finding against it.
+**Pin the delta — don't re-review from scratch and don't trust the session snapshot.** Record the last-reviewed commit SHA; a re-review is `git diff <last-sha>..HEAD` + `git log <last-sha>..HEAD`, not a fresh `<base>..HEAD`. The start-of-session `gitStatus` snapshot and commit-message claims are *not* ground truth — reconcile your view with the PR's remote head (`gh pr view <n> --json headRefOid`): the dev may have committed locally (your local HEAD already advanced) or pushed to the remote (your checkout is stale). Establish the real delta first, then verify each prior finding against it.
 
 **The most common re-review miss is a fix applied to one of several parallel branches.** When a fix touches one case (one segment's denominator, one platform, one code path), confirm it was applied to *every* sibling case — and that any invariant still holds (e.g. a distribution still sums to ~100%). See §5 symmetric-fix gap.
 
