@@ -100,6 +100,24 @@ deleted_at: {
 (soft delete via `deleted_at`); map them in model options via
 `createdAt` / `updatedAt` / `deletedAt` + `paranoid: true`.
 
+**`deleted_at` is always the last column. Never add a column after it** — in the
+migration `createTable`, in the model `init()`, or when altering an existing table.
+New business columns go *above* the `metadata` / `status` / `created_at` / `updated_at` /
+`deleted_at` block, so the trailing block stays intact and identical across every table.
+
+When adding a column to an existing table, place it before the trailing block explicitly
+instead of letting MySQL append it at the end:
+
+```js
+await queryInterface.addColumn("<snake_table>", "<new_col>", {
+    type: DataTypes.STRING,
+    allowNull: true,
+    after: "<last_business_column>",   // NOT after deleted_at
+});
+```
+
+Mirror the same position in the model `init()` — the new column goes above `metadata`.
+
 ---
 
 ## Part 1 — The Migration
@@ -452,7 +470,9 @@ resolve if **those models are also registered** under those exact names.
 3. PK `id` (autoIncrement). FKs `<entity>Id` camel with `foreignKey:true`,
    `references.model`=target table, `references.as`=column name, onDelete per rule.
 4. Data cols snake_case; ENUMs as `values` arrays.
-5. `metadata`, `status`, `created_at`, `updated_at`, `deleted_at`.
+5. `metadata`, `status`, `created_at`, `updated_at`, `deleted_at` — last five, in that
+   order. `deleted_at` is the final column; nothing goes after it (new columns on
+   existing tables use `after: "<last_business_column>"`).
 
 **Model**
 6. File `<Entity>.model.ts`; class + `modelName` PascalCase, `tableName` snake_case.
